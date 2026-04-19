@@ -1,4 +1,4 @@
-import type { Pixel, User } from "@prisma/client";
+import type { Pixel } from "@prisma/client";
 
 export type PixelUpdates = Pick<Pixel, "x" | "y" | "color">[];
 
@@ -37,7 +37,11 @@ export class PixelUpdatesController {
 
 
 export type UserPresence = {
-  user: User;
+  did: string;
+  role: "USER" | "ADMIN";
+  username: string;
+  avatarUrl?: string;
+  webProfileUrl?: string;
   last_seen: number;
   x: number;
   y: number;
@@ -45,16 +49,20 @@ export type UserPresence = {
 
 class UserPresenceController {
   private userPresence: UserPresence[] = [];
-  
+
   constructor() {}
-  
+
   updateUserPosition(newPosition: UserPresence) {
-    const existingUser = this.userPresence.find((up) => up.user.id === newPosition.user.id);
+    const existingUser = this.userPresence.find((up) => up.did === newPosition.did);
     if (existingUser) {
       if (newPosition.last_seen > existingUser.last_seen) {
         existingUser.x = newPosition.x;
         existingUser.y = newPosition.y;
         existingUser.last_seen = newPosition.last_seen;
+        existingUser.username = newPosition.username;
+        existingUser.avatarUrl = newPosition.avatarUrl;
+        existingUser.webProfileUrl = newPosition.webProfileUrl;
+        existingUser.role = newPosition.role;
       }
     } else {
       this.userPresence.push(newPosition);

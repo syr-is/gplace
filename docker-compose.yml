@@ -37,10 +37,7 @@ services:
       - ./app:/app
     environment:
       - DATABASE_URL=postgresql://postgres:${DB_PASSWORD-password}@db:${DB_PORT-5432}/postgres
-      - JWT_SECRET=${JWT_SECRET-secret}
-      - CARDBOARD_TOKEN=${CARDBOARD_TOKEN:?Get token at https://cardboard.ink/}
-      - CARDBOARD_SECRET=${CARDBOARD_SECRET:?Get secret at https://cardboard.ink/}
-      - PUBLIC_CARDBOARD_URL=${PUBLIC_CARDBOARD_URL:?Get url at https://cardboard.ink/}
+      - APP_ORIGIN=${APP_ORIGIN-http://localhost:5173}
       - PUBLIC_CURRENT_BOARD=${PUBLIC_CURRENT_BOARD?Board Param is required, set to empty string if none yet.}
       - PROD=${PROD-false}
       - REDIS_URL=redis://default:${REDIS_PASSWORD-password}@redis:${REDIS_PORT-6379}/0

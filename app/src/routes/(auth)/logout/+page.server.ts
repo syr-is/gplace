@@ -1,24 +1,15 @@
-import {redirect} from "@sveltejs/kit"
-import {cb} from "$lib/server"
-import { PROD } from "$env/static/private"
+import { redirect } from "@sveltejs/kit"
+import { prisma } from "$lib/server"
 
 export const load = () => {
-  throw redirect( 302, '/') 
+  throw redirect(302, '/')
 }
 
 export const actions = {
-  default: async({cookies}) => {
-    const code = cookies.get('session')
-    if (!code) {
-      throw redirect( 302, '/')
-    }
-    cb.revokeToken(code)
-    cookies.set('session', '', {
-			path: '/',
-			expires: new Date(0),
-      sameSite: PROD === 'true' ? 'none' : 'lax',
-      secure: PROD === 'true',
-		})
-    throw redirect( 302, '/')
+  default: async ({ cookies }) => {
+    const id = cookies.get('gplace_session')
+    if (id) await prisma.session.delete({ where: { id } }).catch(() => {})
+    cookies.delete('gplace_session', { path: '/' })
+    throw redirect(302, '/')
   }
 }

@@ -12,12 +12,9 @@ jobs:
       matrix:
         node-version: [20.x]
     env:
-      CARDBOARD_SECRET: ${{ secrets.CARDBOARD_SECRET }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      JWT_SECRET: ${{secrets.JWT_SECRET}}
-      CARDBOARD_TOKEN: ${{vars.CARDBOARD_TOKEN}}
       APP_PORT: ${{vars.APP_PORT}}
-      PUBLIC_CARDBOARD_URL: ${{vars.PUBLIC_CARDBOARD_URL}}
+      APP_ORIGIN: ${{vars.APP_ORIGIN}}
       PUBLIC_CURRENT_BOARD: ${{vars.PUBLIC_CURRENT_BOARD}}
       PROD: ${{vars.PROD}}
       REDIS_URL: ${{secrets.REDIS_URL}}

@@ -1,7 +1,6 @@
 export const load = async ({ locals }) => {
-	const localUser = locals.localUser
-  const remoteUser = locals.remoteUser
-  return {
-    localUser, remoteUser
-  }
+    return {
+        localUser: locals.localUser,
+        profile: locals.profile ?? null
+    }
 }

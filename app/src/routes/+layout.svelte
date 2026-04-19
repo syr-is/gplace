@@ -6,11 +6,11 @@
 	// Floating UI for Popups
 	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';
 	import { storePopup } from '@skeletonlabs/skeleton';
-	import LoginWithGuilded from '$lib/client/components/LoginWithGuilded.svelte';
+	import LoginWithSyr from '$lib/client/components/LoginWithSyr.svelte';
 	import { page } from '$app/stores';
 	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
 	initializeStores()
-	
+
 	const drawerStore = getDrawerStore();
 
 	const drawerSettings: DrawerSettings = {
@@ -18,6 +18,12 @@
 		padding: 'p-4',
 		rounded: 'rounded-none',
 	}
+
+	$: profile = $page.data.profile;
+	$: localUser = $page.data.localUser;
+	$: displayName = profile?.displayName ?? profile?.username ?? localUser?.id?.slice(0, 16) ?? '';
+	$: avatarSrc = profile?.avatarUrl ?? '/favicon.png';
+	$: profileHref = profile?.webProfileUrl ?? null;
 </script>
 
 <Toast />
@@ -30,37 +36,50 @@
 					GPlace
 				</h2>
 			</a>
-			{#if $page.data.localUser}
-			<a href="profile" on:click={() => drawerStore.close()} >
-			<div class="flex flex-col items-center w-full">
-					<Avatar src={$page.data.localUser.avatar} width="w-16" rounded="rounded-none" />
-					<div class="flex gap-2 items-center mt-2">
-						{$page.data.localUser.username}
-						{#if $page.data.localUser.role == "ADMIN"}
-						·
-						<span class="badge variant-filled-tertiary">ADMIN</span>
-						{/if}
+			{#if localUser}
+				{#if profileHref}
+					<a href={profileHref} target="_blank" rel="noopener noreferrer" on:click={() => drawerStore.close()}>
+						<div class="flex flex-col items-center w-full">
+							<Avatar src={avatarSrc} width="w-16" rounded="rounded-none" />
+							<div class="flex gap-2 items-center mt-2">
+								{displayName}
+								{#if localUser.role == "ADMIN"}
+									·
+									<span class="badge variant-filled-tertiary">ADMIN</span>
+								{/if}
+							</div>
+						</div>
+					</a>
+				{:else}
+					<div class="flex flex-col items-center w-full">
+						<Avatar src={avatarSrc} width="w-16" rounded="rounded-none" />
+						<div class="flex gap-2 items-center mt-2">
+							{displayName}
+							{#if localUser.role == "ADMIN"}
+								·
+								<span class="badge variant-filled-tertiary">ADMIN</span>
+							{/if}
+						</div>
 					</div>
-				</div>
-			</a>
+				{/if}
 			{/if}
 			<hr class="w-2/3" />
 			<a href="/tips" target="_blank" rel="noopener noreferrer">Tips</a>
 			<a href="/leaderboard" target="_blank" rel="noopener noreferrer">Leaderboard</a>
-			{#if $page.data.localUser}
-			<a href="settings" on:click={() => drawerStore.close()}>
-				Settings
-			</a>
-			<LightSwitch />
-			<hr class="w-2/3" />
-			<form action="/logout" method="POST">
-				<button class="btn variant-ghost-error mb-4" type="submit">
-					Logout
-				</button>
-			</form>
+			{#if localUser}
+				<a href="/settings" on:click={() => drawerStore.close()}>
+					Settings
+				</a>
+				<LightSwitch />
+				<hr class="w-2/3" />
+				<form action="/logout" method="POST">
+					<button class="btn variant-ghost-error mb-4" type="submit">
+						Logout
+					</button>
+				</form>
 			{:else}
-			<hr class="w-2/3" />
-				<LoginWithGuilded />
+				<hr class="w-2/3" />
+				<LoginWithSyr />
 			{/if}
 		</div>
 		<footer class="flex flex-col gap-4 mt- items-center w-full">

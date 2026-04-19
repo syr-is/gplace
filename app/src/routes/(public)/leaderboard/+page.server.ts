@@ -1,25 +1,36 @@
 import { error } from "@sveltejs/kit"
+import { getProfile } from "$lib/server/profile"
 
 export const load = async ({locals}) => {
   const getTopChangers = async () => {
-    // get top 10 values of totalPixelsChanged from user schema
-    const topChangers = await locals.db.user.findMany({
+    const rows = await locals.db.user.findMany({
       orderBy: {
         totalPixelsChanged: 'desc'
       },
       take: 10,
       select: {
         id: true,
-        username: true,
         totalPixelsChanged: true,
-        avatar: true,
-        banner: true
+        syrInstanceUrl: true,
+        role: true
       }
     })
-    if (!topChangers) {
+    if (!rows) {
       throw error(500, "Error while fetching top changers")
     }
-    return topChangers
+    const enriched = await Promise.all(rows.map(async (r) => {
+      const p = await getProfile(r.id, r.syrInstanceUrl).catch(() => null)
+      return {
+        id: r.id,
+        role: r.role,
+        totalPixelsChanged: r.totalPixelsChanged,
+        username: p?.displayName ?? p?.username ?? r.id.slice(0, 12),
+        avatar: p?.avatarUrl ?? null,
+        banner: p?.bannerUrl ?? null,
+        webProfileUrl: p?.webProfileUrl ?? null
+      }
+    }))
+    return enriched
   }
   return {lazy: {
     topChangers: getTopChangers()

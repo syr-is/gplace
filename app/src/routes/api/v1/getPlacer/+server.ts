@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit'
 import { PUBLIC_CURRENT_BOARD } from '$env/static/public';
+import { getProfile } from '$lib/server/profile';
 
 export const GET = async ({locals, url}) => {
   if (PUBLIC_CURRENT_BOARD == '') {
@@ -29,7 +30,14 @@ export const GET = async ({locals, url}) => {
       }
     },
     select: {
-      user: true
+      user: {
+        select: {
+          id: true,
+          role: true,
+          syrInstanceUrl: true,
+          totalPixelsChanged: true
+        }
+      }
     }
   })
   if (!pixel) {
@@ -39,5 +47,15 @@ export const GET = async ({locals, url}) => {
     throw error(404, "User not found")
   }
   const user = pixel.user
-  return json(user)
+  const profile = await getProfile(user.id, user.syrInstanceUrl).catch(() => null)
+  return json({
+    id: user.id,
+    role: user.role,
+    syrInstanceUrl: user.syrInstanceUrl,
+    totalPixelsChanged: user.totalPixelsChanged,
+    username: profile?.displayName ?? profile?.username ?? user.id.slice(0, 12),
+    avatar: profile?.avatarUrl ?? null,
+    banner: profile?.bannerUrl ?? null,
+    webProfileUrl: profile?.webProfileUrl ?? null
+  })
 }
