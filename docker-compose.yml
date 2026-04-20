@@ -5,12 +5,15 @@ services:
     container_name: gplace-redis
     image: redis:7.2.1-alpine
     restart: always
+    # The official redis image does NOT pick up REDIS_PASSWORD from env —
+    # it must be passed as --requirepass on the command line, or AUTH is
+    # silently never enforced (and the app's REDIS_URL credentials are
+    # ignored on connect).
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD-password}"]
     ports:
       - ${REDIS_PORT-6479}:6379
     volumes:
       - ./redis:/data
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD-password}
   gplace-db:
     container_name: gplace-db
     image: postgres:16-alpine

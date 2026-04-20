@@ -21,6 +21,11 @@ enum Role {
     ADMIN
 }
 
+// Reads are public (leaderboard, presence, getPlacer, etc.). Writes are NOT
+// exposed via the enhanced ZenStack client — `auth() == this` would let any
+// signed-in user mutate their own `role` and escalate to ADMIN. All User
+// mutations (auth callback upsert, totalPixelsChanged increment) go through
+// the raw `prisma` client in trusted server code instead.
 model User extends _base {
     id String @id @unique                 // = the syr DID, e.g. "did:syr:z6Mk..."
     syrInstanceUrl String                 // origin of the user's home syr instance
@@ -30,8 +35,7 @@ model User extends _base {
     pixels Pixel[]
     sessions Session[]
 
-    @@allow('create,read', true)
-    @@allow('all', auth() == this)
+    @@allow('read', true)
 }
 
 // No @@allow rules → invisible under enhance(prisma, ...).

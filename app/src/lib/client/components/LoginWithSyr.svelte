@@ -23,6 +23,10 @@
         errorMsg = data.message || data.error || 'Failed to connect';
         return;
       }
+      if (typeof data.consent_url !== 'string' || !/^https?:\/\//i.test(data.consent_url)) {
+        errorMsg = 'Invalid response from server';
+        return;
+      }
       window.location.href = data.consent_url;
     } catch (err) {
       errorMsg = err instanceof Error ? err.message : 'Connection failed';

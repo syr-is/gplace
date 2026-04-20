@@ -33,7 +33,12 @@ export const POST = async ({ request, cookies }) => {
     };
     cookies.set('gplace_pending_instance', instanceUrl, tempCookieOpts);
     cookies.set('gplace_oauth_state', state, tempCookieOpts);
-    if (body.redirect && typeof body.redirect === 'string' && body.redirect.startsWith('/')) {
+    // Reject protocol-relative URLs (`//attacker.com`) that browsers treat as external.
+    if (
+        typeof body.redirect === 'string' &&
+        body.redirect.startsWith('/') &&
+        !body.redirect.startsWith('//')
+    ) {
         cookies.set('gplace_post_login_redirect', body.redirect, tempCookieOpts);
     }
 

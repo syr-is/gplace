@@ -1,5 +1,5 @@
 import { redis } from '$lib/server/redis';
-import { fetchIdentityManifest } from '$lib/server/syr';
+import { fetchIdentityManifest, safeUrl } from '$lib/server/syr';
 
 export interface ProfileData {
     did: string;
@@ -18,15 +18,25 @@ export interface ProfileData {
 
 const PROFILE_TTL_S = 300;
 const HASH_RECHECK_MS = 30_000;
+const FETCH_TIMEOUT_MS = 5000;
 const KEY = (did: string) => `gplace:profile:${did}`;
 
 const inflight = new Map<string, Promise<ProfileData | null>>();
 
+/** Only return string URLs that pass the safe-URL policy (http(s), no private hosts in prod). */
+function safeUrlString(input: unknown): string | undefined {
+    if (typeof input !== 'string') return undefined;
+    return safeUrl(input)?.toString();
+}
+
 async function fetchHash(hashUrl: string): Promise<string | null> {
+    const url = safeUrl(hashUrl);
+    if (!url) return null;
     try {
-        const res = await fetch(hashUrl, {
+        const res = await fetch(url, {
             headers: { Accept: 'application/json' },
-            signal: AbortSignal.timeout(4000)
+            redirect: 'error',
+            signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
         });
         if (!res.ok) return null;
         const body = (await res.json()) as { data?: { hash?: string }; hash?: string };
@@ -43,11 +53,16 @@ async function fetchAndCache(did: string, syrInstanceUrl: string): Promise<Profi
     const promise = (async () => {
         const manifest = await fetchIdentityManifest(syrInstanceUrl, did);
         if (!manifest?.endpoints?.profile) return null;
+
+        const profileUrl = safeUrl(manifest.endpoints.profile);
+        if (!profileUrl) return null;
+
         let profileBody: { data?: Record<string, unknown> } | null = null;
         try {
-            const res = await fetch(manifest.endpoints.profile, {
+            const res = await fetch(profileUrl, {
                 headers: { Accept: 'application/json' },
-                signal: AbortSignal.timeout(5000)
+                redirect: 'error',
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
             });
             if (!res.ok) return null;
             profileBody = (await res.json()) as { data?: Record<string, unknown> };
@@ -57,7 +72,7 @@ async function fetchAndCache(did: string, syrInstanceUrl: string): Promise<Profi
 
         const data = profileBody?.data ?? {};
         const now = Date.now();
-        const hashUrl = manifest.endpoints.public_hash;
+        const hashUrl = safeUrlString(manifest.endpoints.public_hash);
         const hashValue = hashUrl ? (await fetchHash(hashUrl)) ?? undefined : undefined;
 
         const profile: ProfileData = {
@@ -66,16 +81,17 @@ async function fetchAndCache(did: string, syrInstanceUrl: string): Promise<Profi
             username: typeof data.username === 'string' ? data.username : undefined,
             displayName: typeof data.display_name === 'string' ? data.display_name : undefined,
             bio: typeof data.bio === 'string' ? data.bio : undefined,
-            avatarUrl: typeof data.avatar_url === 'string' ? data.avatar_url : undefined,
-            bannerUrl: typeof data.banner_url === 'string' ? data.banner_url : undefined,
-            webProfileUrl:
-                typeof manifest.web_profile === 'string' ? manifest.web_profile : undefined,
+            avatarUrl: safeUrlString(data.avatar_url),
+            bannerUrl: safeUrlString(data.banner_url),
+            webProfileUrl: safeUrlString(manifest.web_profile),
             hashUrl,
             hashValue,
             fetchedAt: now,
             hashCheckedAt: now
         };
-        await redis.set(KEY(did), JSON.stringify(profile), 'EX', PROFILE_TTL_S);
+        await redis
+            .set(KEY(did), JSON.stringify(profile), 'EX', PROFILE_TTL_S)
+            .catch(() => {});
         return profile;
     })();
 
@@ -101,14 +117,28 @@ export async function getProfile(
         return fetchAndCache(did, syrInstanceUrl);
     }
 
-    if (profile.hashUrl && Date.now() - profile.hashCheckedAt > HASH_RECHECK_MS) {
-        const fresh = await fetchHash(profile.hashUrl);
-        if (fresh && fresh !== profile.hashValue) {
-            return fetchAndCache(did, syrInstanceUrl);
-        }
-        profile.hashCheckedAt = Date.now();
-        if (fresh) profile.hashValue = fresh;
-        await redis.set(KEY(did), JSON.stringify(profile), 'EX', PROFILE_TTL_S).catch(() => {});
+    const now = Date.now();
+    const hardExpiresAt = profile.fetchedAt + PROFILE_TTL_S * 1000;
+    if (now >= hardExpiresAt) return fetchAndCache(did, syrInstanceUrl);
+
+    if (profile.hashUrl && now - profile.hashCheckedAt > HASH_RECHECK_MS) {
+        // Bump the recheck timestamp synchronously so concurrent requests don't all spawn rechecks,
+        // then run the actual hash check in the background. This keeps every request fast (one
+        // Redis GET) and never blocks on the upstream syr instance during normal operation.
+        profile.hashCheckedAt = now;
+        const remainingTtl = Math.max(1, Math.ceil((hardExpiresAt - now) / 1000));
+        const snapshot = profile;
+        void redis
+            .set(KEY(did), JSON.stringify(snapshot), 'EX', remainingTtl)
+            .catch(() => {});
+        void (async () => {
+            const hashUrl = snapshot.hashUrl;
+            if (!hashUrl) return;
+            const fresh = await fetchHash(hashUrl);
+            if (fresh && fresh !== snapshot.hashValue) {
+                await fetchAndCache(did, syrInstanceUrl);
+            }
+        })();
     }
     return profile;
 }

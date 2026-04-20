@@ -1,7 +1,11 @@
 services:
   # GPlace Application (Production)
   # Postgres and Redis are provided by Dokploy's managed services —
-  # wire DATABASE_URL and REDIS_URL through env at deploy time.
+  # wire DATABASE_URL and REDIS_URL through env at deploy time. Both
+  # connection strings MUST include credentials; the app refuses to start
+  # without them. For Redis, ensure your Dokploy Redis service is launched
+  # with --requirepass (or equivalent ACL) — the official redis image does
+  # NOT enforce auth from the REDIS_PASSWORD env var alone.
   gplace-app:
     build:
       context: .

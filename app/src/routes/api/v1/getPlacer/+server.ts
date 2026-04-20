@@ -49,12 +49,13 @@ export const GET = async ({locals, url}) => {
   }
   const user = pixel.user
   const profile = await getProfile(user.id, user.syrInstanceUrl).catch(() => null)
+  const fallbackName = user.id.split(':').pop()?.slice(0, 10) ?? 'Unknown'
   return json({
     id: user.id,
     role: user.role,
     syrInstanceUrl: user.syrInstanceUrl,
     totalPixelsChanged: user.totalPixelsChanged,
-    username: profile?.displayName ?? profile?.username ?? user.id.slice(0, 12),
+    username: profile?.displayName ?? profile?.username ?? fallbackName,
     avatar: profile?.avatarUrl ?? null,
     banner: profile?.bannerUrl ?? null,
     webProfileUrl: profile?.webProfileUrl ?? null

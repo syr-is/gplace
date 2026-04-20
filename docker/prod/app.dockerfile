@@ -43,9 +43,10 @@ USER sveltekit
 
 EXPOSE 5173
 
-# Hit /, not /health (no /health route exists; Traefik would mark unhealthy and drop routing).
+# Hit /login because / depends on board data (returns 500 before the first board is created
+# during the documented bootstrap flow). /login is always reachable.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:' + process.env.PORT + '/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)})" || exit 1
+    CMD node -e "require('http').get('http://localhost:' + process.env.PORT + '/login', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))" || exit 1
 
 # `prisma db push --skip-generate` syncs the schema to the managed Postgres on boot.
 # Skip-generate avoids writes to node_modules (incompatible with read-only FS).

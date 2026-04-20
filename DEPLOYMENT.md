@@ -107,11 +107,11 @@ Out of the box the database is empty: no users, no board. The canvas at `/` will
 
 1. **Push the deploy.** The container will boot, run `prisma db push --skip-generate` against the managed Postgres (creating the schema), then start serving.
 2. **Sign in.** Open `https://app.gplace.ink/login`, enter your syr instance URL (e.g. `https://app.syr.is`), approve consent. You'll land on `/` with a 500 — expected.
-3. **Promote yourself to ADMIN.** From a Dokploy shell into the Postgres service:
+3. **Promote yourself to ADMIN.** From a Dokploy shell into the Postgres service, look up your DID and target it explicitly — the unconditional `UPDATE` is dangerous if anyone else races to sign in before you finish bootstrap:
    ```bash
-   psql $DATABASE_URL -c "UPDATE \"User\" SET role = 'ADMIN';"
+   psql "$DATABASE_URL" -c 'SELECT id FROM "User";'
+   psql "$DATABASE_URL" -c "UPDATE \"User\" SET role = 'ADMIN' WHERE id = 'did:syr:YOUR_DID_HERE';"
    ```
-   You're the only user, so the unconditional `UPDATE` is fine.
 4. **Create the board.** Visit `https://app.gplace.ink/settings`, create a board named exactly `main` (matching `PUBLIC_CURRENT_BOARD`). Pick the dimensions you want.
 
 Done. The canvas at `/` is now usable.
@@ -167,6 +167,12 @@ The gplace-app container runs:
 ### Schema regen
 
 - gplace ships a generated `prisma/schema.prisma` from `schema.zmodel`. `zenstack generate` runs in the Docker build stage. If you edit `schema.zmodel` and forget to commit the regenerated `prisma/schema.prisma`, the build will pick up only the new zmodel and regenerate fine — but local devs may see drift if they don't run `npx zenstack generate` after pulling.
+
+### Sessions & token storage
+
+- `Session.platformToken` (the syr-issued bearer for that browser login) is stored **plaintext** in Postgres, matching syren's pattern. Trade-off: a DB read leak exposes every active session's syr token until the session expires (≤30 days). Acceptable given the threat model (compromised DB ⇒ already game over) but flag it in any security review. To harden: encrypt with a server-side key from env before insert, decrypt on session lookup.
+- Sessions auto-cascade-delete when the User row is removed.
+- There's no background sweeper for expired Session rows — `hooks.server.ts` lazily deletes expired ones on the next request that uses them. If you want a periodic sweep: `DELETE FROM "Session" WHERE "tokenExpiresAt" < now() - interval '7 days';` as a cron job.
 
 ### Stuck containers
 

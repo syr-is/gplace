@@ -112,7 +112,8 @@
     if (selX == null || selY == null) {
       return null
     }
-    selPlacer = (await fetch(`/api/v1/getPlacer?x=${selX}&y=${selY}`)).json() as Promise<Placer>
+    const res = await fetch(`/api/v1/getPlacer?x=${selX}&y=${selY}`)
+    selPlacer = res.ok ? (res.json() as Promise<Placer>) : Promise.resolve(null)
     return selPlacer
   }
   const placePixel = async() => {

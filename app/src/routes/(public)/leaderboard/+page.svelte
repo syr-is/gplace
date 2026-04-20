@@ -41,7 +41,7 @@
       rel={topChanger.webProfileUrl ? 'noopener noreferrer' : undefined}
       href={topChanger.webProfileUrl ?? undefined}
     >
-      <div style={topChanger.banner ? `background-image: url('${topChanger.banner}')` : ''} class="card bg-no-repeat bg-cover w-full flex justify-between p-4" >
+      <div style={topChanger.banner ? `background-image: url("${encodeURI(topChanger.banner).replace(/"/g, '%22')}")` : ''} class="card bg-no-repeat bg-cover w-full flex justify-between p-4" >
         <div class="flex flex-row justify-between w-full">
           <div class="flex gap-4 items-center" use:getTextColor={topChanger.banner}>
             <Avatar src={topChanger.avatar ?? FALLBACK_AVATAR} width="w-16" rounded="rounded-none" />

@@ -8,12 +8,16 @@ import {
     isProd
 } from '$lib/server/syr';
 
-const loginRedirect = (msg: string) => redirect(302, `/login?error=${encodeURIComponent(msg)}`);
+const loginRedirect = (code: string) =>
+    redirect(302, `/login?error=${encodeURIComponent(code)}`);
+
+/** Reject protocol-relative URLs like `//attacker.com` that browsers treat as external. */
+const isSafeRelativePath = (p: unknown): p is string =>
+    typeof p === 'string' && p.startsWith('/') && !p.startsWith('//');
 
 export const GET = async ({ url, cookies }) => {
     const errorParam = url.searchParams.get('error');
-    const errorDesc = url.searchParams.get('error_description');
-    if (errorParam) throw loginRedirect(errorDesc ?? errorParam);
+    if (errorParam) throw loginRedirect('consent_denied');
 
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
@@ -41,9 +45,8 @@ export const GET = async ({ url, cookies }) => {
             callback_url: getCallbackUrl(),
             platform_origin: getPlatformOrigin()
         });
-    } catch (err) {
-        const msg = err instanceof Error ? err.message : 'token_exchange_failed';
-        throw loginRedirect(msg);
+    } catch {
+        throw loginRedirect('token_exchange_failed');
     }
 
     await prisma.user.upsert({
@@ -85,5 +88,5 @@ export const GET = async ({ url, cookies }) => {
         maxAge: 30 * 24 * 60 * 60
     });
 
-    throw redirect(302, postLogin && postLogin.startsWith('/') ? postLogin : '/');
+    throw redirect(302, isSafeRelativePath(postLogin) ? postLogin : '/');
 };
