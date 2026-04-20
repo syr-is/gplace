@@ -91,6 +91,10 @@ Schema changes (`app/schema.zmodel`) re-apply on container restart via `prisma d
 
 All host ports are env-overridable. Container-to-container comms always use the internal port + the `gplace-*` service hostname.
 
+## Production deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the Dokploy + Cloudflare setup (managed Postgres/Redis, domain routing, env vars, first-deploy admin bootstrap).
+
 ## Troubleshooting
 
 - **`prisma db push` fails on boot** with column-drop errors → step 2 (wipe the volume).

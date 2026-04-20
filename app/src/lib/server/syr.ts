@@ -1,4 +1,4 @@
-import { APP_ORIGIN, PROD } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export interface InstanceManifest {
     name?: string;
@@ -36,9 +36,12 @@ export interface SyrTokens {
     scopes: string[];
 }
 
-export const isProd = (): boolean => PROD === 'true';
+export const isProd = (): boolean => env.PROD === 'true';
 
-export const getPlatformOrigin = (): string => APP_ORIGIN.replace(/\/+$/, '');
+export const getPlatformOrigin = (): string => {
+    if (!env.APP_ORIGIN) throw new Error('APP_ORIGIN is required');
+    return env.APP_ORIGIN.replace(/\/+$/, '');
+};
 
 export const getCallbackUrl = (): string => `${getPlatformOrigin()}/api/auth/callback`;
 

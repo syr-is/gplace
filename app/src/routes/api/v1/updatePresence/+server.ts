@@ -1,9 +1,10 @@
 import { error, json } from '@sveltejs/kit'
-import { PUBLIC_CURRENT_BOARD } from '$env/static/public';
+import { env as publicEnv } from '$env/dynamic/public';
 import {z} from 'zod'
 import { userPresenceManager } from '$lib/common';
 
 export const POST = async ({locals, request}) => {
+  const PUBLIC_CURRENT_BOARD = publicEnv.PUBLIC_CURRENT_BOARD ?? ''
   if (PUBLIC_CURRENT_BOARD == '') {
     throw error(500, "No board selected")
   }

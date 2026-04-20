@@ -1,42 +1,25 @@
-version: "3.3"
-
 services:
-  gplace-redis:
-    container_name: gplace-redis
-    image: redis:7.2.1-alpine
-    restart: always
-    ports:
-      - ${REDIS_PORT-6479}:6379
-    volumes:
-      - ./redis:/data
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD-password}
-  gplace-db:
-    container_name: gplace-db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB PASSWORD REQUIRED}
-    volumes:
-      - ./db:/var/lib/postgresql/data
-    ports:
-      - ${DB_PORT:?MUST SET DB PORT}:5432
+  # GPlace Application (Production)
+  # Postgres and Redis are provided by Dokploy's managed services —
+  # wire DATABASE_URL and REDIS_URL through env at deploy time.
   gplace-app:
-    container_name: gplace-app
     build:
       context: .
-      dockerfile: ./docker/prod/app.dockerfile
-    restart: always
-    depends_on:
-      - gplace-db
-    ports:
-      - ${APP_PORT}:${APP_PORT}
-    volumes:
-      - ./app:/app
+      dockerfile: docker/prod/app.dockerfile
     environment:
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?password missing}@gplace-db:5432/postgres
-      APP_ORIGIN: ${APP_ORIGIN:?APP_ORIGIN required (e.g. https://gplace.ink)}
-      PUBLIC_CURRENT_BOARD: ${PUBLIC_CURRENT_BOARD:?Board Param is required, set to empty string if none yet.}
-      PROD: ${PROD:?PROD PARAM REQUIRED}
-      REDIS_URL: redis://default:${REDIS_PASSWORD-password}@gplace-redis:6379/0
-      APP_PORT: ${APP_PORT}
+      - NODE_ENV=production
+      - PORT=${PORT:-5173}
+      - APP_ORIGIN=${APP_ORIGIN:?APP_ORIGIN required (e.g. https://app.gplace.ink)}
+      - PROD=true
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL required (managed Postgres connection string)}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL required (managed Redis connection string)}
+      - PUBLIC_CURRENT_BOARD=${PUBLIC_CURRENT_BOARD:-main}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.prisma
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
