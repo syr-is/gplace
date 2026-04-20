@@ -51,8 +51,6 @@ export const getCallbackUrl = (): string => `${getPlatformOrigin()}/api/auth/cal
  * Validate any URL we're about to send a server-side fetch to.
  * In production: require https + reject private/loopback/link-local hosts (SSRF defense).
  * In dev: permit http + localhost so the local syr instance is reachable.
- * Used for syr API endpoints (manifest, profile JSON, token exchange) where
- * we control the integration contract and want strict transport security.
  */
 export function safeUrl(input: string | undefined | null): URL | null {
     if (typeof input !== 'string' || !input) return null;
@@ -67,26 +65,6 @@ export function safeUrl(input: string | undefined | null): URL | null {
         if (parsed.protocol !== 'https:') return null;
         if (isPrivateOrLoopback(parsed.hostname)) return null;
     }
-    return parsed;
-}
-
-/**
- * Looser policy for the media proxy: any public http(s) URL is acceptable.
- * Federated syr instances may legitimately serve avatars/banners over plain
- * HTTP (e.g. when SeaweedFS sits behind a non-TLS-terminating reverse proxy),
- * so we don't require HTTPS — but we still block private/loopback/link-local
- * hosts so the proxy can't be used to probe internal services.
- */
-export function safeProxyUrl(input: string | undefined | null): URL | null {
-    if (typeof input !== 'string' || !input) return null;
-    let parsed: URL;
-    try {
-        parsed = new URL(input);
-    } catch {
-        return null;
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
-    if (isProd() && isPrivateOrLoopback(parsed.hostname)) return null;
     return parsed;
 }
 
