@@ -2,18 +2,17 @@ version: "3.3"
 
 services:
   guilded-place-redis:
-    container_name: redis
+    container_name: gplace-redis
     image: redis:7.2.1-alpine
     restart: always
     ports:
-      - ${REDIS_PORT-6379}:${REDIS_PORT-6379}
+      - ${REDIS_PORT-6479}:6379
     volumes:
       - ./redis:/data
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD-password}
-      - REDIS_PORT=${REDIS_PORT-6379}
   guilded-place-db:
-    container_name: db
+    container_name: gplace-db
     image: postgres:16-alpine
     restart: always
     environment:
@@ -21,23 +20,23 @@ services:
     volumes:
       - ./db:/var/lib/postgresql/data
     ports:
-      - ${DB_PORT-5432}:5432
+      - ${DB_PORT-5476}:5432
   guilded-place-app:
-    container_name: app
-    build: 
+    container_name: gplace-app
+    build:
       context: .
       dockerfile: ./docker/dev/app.dockerfile
     restart: always
     depends_on:
       - guilded-place-db
     ports:
-      - 5555:5555
-      - 5173:5173
+      - ${STUDIO_PORT-5556}:5555
+      - ${DEV_PORT-5176}:5173
     volumes:
       - ./app:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD-password}@db:${DB_PORT-5432}/postgres
-      - APP_ORIGIN=${APP_ORIGIN-http://localhost:5173}
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD-password}@gplace-db:5432/postgres
+      - APP_ORIGIN=${APP_ORIGIN-http://localhost:5176}
       - PUBLIC_CURRENT_BOARD=${PUBLIC_CURRENT_BOARD?Board Param is required, set to empty string if none yet.}
       - PROD=${PROD-false}
-      - REDIS_URL=redis://default:${REDIS_PASSWORD-password}@redis:${REDIS_PORT-6379}/0
+      - REDIS_URL=redis://default:${REDIS_PASSWORD-password}@gplace-redis:6379/0
