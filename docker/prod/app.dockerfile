@@ -1,20 +1,31 @@
 # syntax=docker/dockerfile:1
 # Build context = gplace repo root.
+#
+# Pinned to node:20-alpine3.17 because Prisma 4.14's musl query engine
+# (libquery_engine-linux-musl.so.node) is compiled against libssl 1.1.
+# Alpine 3.18+ dropped the libssl1.1 apk package, so newer node:20-alpine
+# images can't load the engine — manifests as
+# "Error loading shared library libssl.so.1.1" during build/runtime.
+# Alpine 3.17 still ships it.
 
 # ---- Dependencies ----
-FROM node:20-alpine AS deps
+FROM node:20-alpine3.17 AS deps
 
-# git: one transitive dep (js-function-reflector via colorthief) is fetched by URL,
-# so yarn install needs the git binary. openssl: required by Prisma's query engine
-# on Alpine; without it the postinstall succeeds but runtime crashes.
-RUN apk add --no-cache git openssl
+# git: one transitive dep (js-function-reflector via colorthief) is fetched by
+# URL, so yarn install needs the git binary.
+# libssl1.1: required by Prisma 4.14's musl query engine.
+RUN apk add --no-cache git openssl libssl1.1
 
 WORKDIR /app
 COPY app/package.json app/yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 # ---- Builder ----
-FROM node:20-alpine AS builder
+FROM node:20-alpine3.17 AS builder
+
+# libssl1.1 needed here too — SvelteKit's adapter-node "analyse" step imports
+# server modules, instantiates PrismaClient, which loads the query engine.
+RUN apk add --no-cache git openssl libssl1.1
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -27,13 +38,13 @@ RUN npx zenstack generate \
     && NODE_OPTIONS="--max-old-space-size=4096" yarn build
 
 # ---- Production ----
-FROM node:20-alpine AS production
+FROM node:20-alpine3.17 AS production
 
 ENV NODE_ENV=production
 ENV PORT=5173
 
-# openssl is required at runtime by Prisma's query engine on Alpine.
-RUN apk add --no-cache openssl
+# openssl + libssl1.1 are needed at runtime by Prisma's query engine.
+RUN apk add --no-cache openssl libssl1.1
 
 WORKDIR /app
 
