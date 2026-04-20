@@ -75,14 +75,21 @@ async function fetchAndCache(did: string, syrInstanceUrl: string): Promise<Profi
         const hashUrl = safeUrlString(manifest.endpoints.public_hash);
         const hashValue = hashUrl ? (await fetchHash(hashUrl)) ?? undefined : undefined;
 
+        // avatar/banner go through the /api/v1/proxy gateway in the templates,
+        // which re-runs safeUrl at fetch time. Source-side filtering here was
+        // dropping legitimate URLs (e.g. presigned S3 with cache-busters) and
+        // showing favicon fallbacks. <img src> ignores non-http(s) protocols
+        // so an unsafe URL stored here can't execute JS.
+        // webProfileUrl, by contrast, becomes an <a href>, which DOES execute
+        // javascript: URLs — keep that filtered.
         const profile: ProfileData = {
             did,
             syrInstanceUrl,
             username: typeof data.username === 'string' ? data.username : undefined,
             displayName: typeof data.display_name === 'string' ? data.display_name : undefined,
             bio: typeof data.bio === 'string' ? data.bio : undefined,
-            avatarUrl: safeUrlString(data.avatar_url),
-            bannerUrl: safeUrlString(data.banner_url),
+            avatarUrl: typeof data.avatar_url === 'string' && data.avatar_url ? data.avatar_url : undefined,
+            bannerUrl: typeof data.banner_url === 'string' && data.banner_url ? data.banner_url : undefined,
             webProfileUrl: safeUrlString(manifest.web_profile),
             hashUrl,
             hashValue,
