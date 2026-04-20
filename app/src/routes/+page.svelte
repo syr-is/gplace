@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { getColorsFromImage, hexToRgb, type UserPresence } from '$lib/common';
+	import { getColorsFromImage, hexToRgb, proxied, type UserPresence } from '$lib/common';
 	import type { Pixel } from '@prisma/client';
 	import { Avatar, type ToastSettings, getToastStore } from '@skeletonlabs/skeleton';;
 	import { error } from '@sveltejs/kit';
@@ -390,7 +390,7 @@
     <div class="absolute">
       {#key userPresence}
       {#each userPresence as presence}
-        {@const presenceAvatar = presence.avatarUrl ?? FALLBACK_AVATAR}
+        {@const presenceAvatar = presence.avatarUrl ? proxied(presence.avatarUrl) : FALLBACK_AVATAR}
         <div class={`highlight absolute h-10 w-10 stroke-black ${!zoom ? "hidden" : "block"}`} style="left: {40*presence.x}px; top: {40*presence.y - (board?.dimY ?? 0)}px" use:setHighlighterColor={presenceAvatar}>
           <div style="top: 37px; left: -3px;" class="absolute flex justify-between items-center gap-2 p-1" use:setHighlighterColor={presenceAvatar} use:setHighlighterContext={presenceAvatar}>
             <Avatar src={presenceAvatar} width="w-8" rounded="rounded-none" />
@@ -443,13 +443,13 @@
             {#if placer.webProfileUrl}
               <a href={placer.webProfileUrl} target="_blank" rel="noopener noreferrer" class="inline">
                 <div class="flex items-center gap-2">
-                  <Avatar src={placer.avatar ?? FALLBACK_AVATAR} width="w-8" rounded="rounded-none" />
+                  <Avatar src={placer.avatar ? proxied(placer.avatar) : FALLBACK_AVATAR} width="w-8" rounded="rounded-none" />
                   {placer.username}
                 </div>
               </a>
             {:else}
               <div class="flex items-center gap-2">
-                <Avatar src={placer.avatar ?? FALLBACK_AVATAR} width="w-8" rounded="rounded-none" />
+                <Avatar src={placer.avatar ? proxied(placer.avatar) : FALLBACK_AVATAR} width="w-8" rounded="rounded-none" />
                 {placer.username}
               </div>
             {/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getColorsFromImage } from '$lib/common';
+	import { getColorsFromImage, proxied } from '$lib/common';
 	import { Avatar } from '@skeletonlabs/skeleton';
   export let data
 
@@ -34,6 +34,7 @@
   </h1>
   <div class="h-[calc(100vh-3rem)] overflow-y-auto overflow-x-visible hide-scrollbar w-full">
     {#each topChangers as topChanger}
+    {@const proxiedBanner = topChanger.banner ? proxied(topChanger.banner) : null}
     <svelte:element
       this={topChanger.webProfileUrl ? 'a' : 'div'}
       class="w-full block"
@@ -41,13 +42,13 @@
       rel={topChanger.webProfileUrl ? 'noopener noreferrer' : undefined}
       href={topChanger.webProfileUrl ?? undefined}
     >
-      <div style={topChanger.banner ? `background-image: url("${encodeURI(topChanger.banner).replace(/"/g, '%22')}")` : ''} class="card bg-no-repeat bg-cover w-full flex justify-between p-4" >
+      <div style={proxiedBanner ? `background-image: url("${encodeURI(proxiedBanner).replace(/"/g, '%22')}")` : ''} class="card bg-no-repeat bg-cover w-full flex justify-between p-4" >
         <div class="flex flex-row justify-between w-full">
-          <div class="flex gap-4 items-center" use:getTextColor={topChanger.banner}>
-            <Avatar src={topChanger.avatar ?? FALLBACK_AVATAR} width="w-16" rounded="rounded-none" />
+          <div class="flex gap-4 items-center" use:getTextColor={proxiedBanner}>
+            <Avatar src={topChanger.avatar ? proxied(topChanger.avatar) : FALLBACK_AVATAR} width="w-16" rounded="rounded-none" />
             <h2 class="text-center">{topChanger.username}</h2>
           </div>
-          <div class="flex flex-col items-center" use:getTextColor={topChanger.banner}>
+          <div class="flex flex-col items-center" use:getTextColor={proxiedBanner}>
             <h3 class="text-center">Points</h3>
             <h3 class="text-center">{topChanger.totalPixelsChanged}</h3>
           </div>

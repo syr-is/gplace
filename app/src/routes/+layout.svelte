@@ -7,6 +7,7 @@
 	import { computePosition, autoUpdate, flip, shift, offset, arrow } from '@floating-ui/dom';
 	import { storePopup } from '@skeletonlabs/skeleton';
 	import LoginWithSyr from '$lib/client/components/LoginWithSyr.svelte';
+	import { proxied } from '$lib/common';
 	import { page } from '$app/stores';
 	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
 	initializeStores()
@@ -22,7 +23,7 @@
 	$: profile = $page.data.profile;
 	$: localUser = $page.data.localUser;
 	$: displayName = profile?.displayName ?? profile?.username ?? localUser?.id?.slice(0, 16) ?? '';
-	$: avatarSrc = profile?.avatarUrl ?? '/favicon.png';
+	$: avatarSrc = profile?.avatarUrl ? proxied(profile.avatarUrl) : '/favicon.png';
 	$: profileHref = profile?.webProfileUrl ?? null;
 </script>
 
