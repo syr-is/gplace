@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
-import { REDIS_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
-export const redis = new Redis(REDIS_URL);
+if (!env.REDIS_URL) throw new Error("REDIS_URL is required");
+export const redis = new Redis(env.REDIS_URL);

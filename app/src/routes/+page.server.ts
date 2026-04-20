@@ -1,8 +1,9 @@
-import {PUBLIC_CURRENT_BOARD} from '$env/static/public'
+import { env as publicEnv } from '$env/dynamic/public'
 import { redis } from '$lib/server/redis'
 import { error } from '@sveltejs/kit'
 
 export const load = async ({locals}) => {
+  const PUBLIC_CURRENT_BOARD = publicEnv.PUBLIC_CURRENT_BOARD ?? ''
   if (PUBLIC_CURRENT_BOARD == '') {
     throw error(500, "No board selected")
   }

@@ -2,7 +2,9 @@
 
 	import { enhance } from "$app/forms";
 	import { page } from "$app/stores";
-	import { PUBLIC_CURRENT_BOARD } from "$env/static/public";
+	import { env as publicEnv } from "$env/dynamic/public";
+
+	const PUBLIC_CURRENT_BOARD = publicEnv.PUBLIC_CURRENT_BOARD ?? "";
 
   export let data
   const {boards} = data 

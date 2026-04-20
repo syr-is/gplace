@@ -2,14 +2,21 @@
 // for information about these interfaces
 // and what to do when importing types
 import type { PrismaClient, User } from '@prisma/client';
-import { GuildedUser } from 'cardboard.js';
+import type { ProfileData } from '$lib/server/profile';
 
 declare global {
     namespace App {
         interface Locals {
-						remoteUser?: GuildedUser;
+            session?: {
+                sessionId: string;
+                did: string;
+                syrInstanceUrl: string;
+                delegatePublicKey: string;
+                platformToken: string;
+            };
             localUser?: User;
-						db: PrismaClient;
+            profile?: ProfileData;
+            db: PrismaClient;
         }
     }
 }

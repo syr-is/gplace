@@ -1,7 +1,9 @@
 import { error, json } from '@sveltejs/kit'
-import { PUBLIC_CURRENT_BOARD } from '$env/static/public';
+import { env as publicEnv } from '$env/dynamic/public';
+import { getProfile } from '$lib/server/profile';
 
 export const GET = async ({locals, url}) => {
+  const PUBLIC_CURRENT_BOARD = publicEnv.PUBLIC_CURRENT_BOARD ?? ''
   if (PUBLIC_CURRENT_BOARD == '') {
     throw error(500, "No board selected")
   }
@@ -29,7 +31,14 @@ export const GET = async ({locals, url}) => {
       }
     },
     select: {
-      user: true
+      user: {
+        select: {
+          id: true,
+          role: true,
+          syrInstanceUrl: true,
+          totalPixelsChanged: true
+        }
+      }
     }
   })
   if (!pixel) {
@@ -39,5 +48,16 @@ export const GET = async ({locals, url}) => {
     throw error(404, "User not found")
   }
   const user = pixel.user
-  return json(user)
+  const profile = await getProfile(user.id, user.syrInstanceUrl).catch(() => null)
+  const fallbackName = user.id.split(':').pop()?.slice(0, 10) ?? 'Unknown'
+  return json({
+    id: user.id,
+    role: user.role,
+    syrInstanceUrl: user.syrInstanceUrl,
+    totalPixelsChanged: user.totalPixelsChanged,
+    username: profile?.displayName ?? profile?.username ?? fallbackName,
+    avatar: profile?.avatarUrl ?? null,
+    banner: profile?.bannerUrl ?? null,
+    webProfileUrl: profile?.webProfileUrl ?? null
+  })
 }

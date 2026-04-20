@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { PhotoBox, getColorsFromImage, hexToRgb, type UserPresence } from '$lib/common';
-	import type { Pixel, User } from '@prisma/client';
+	import { getColorsFromImage, hexToRgb, type UserPresence } from '$lib/common';
+	import type { Pixel } from '@prisma/client';
 	import { Avatar, type ToastSettings, getToastStore } from '@skeletonlabs/skeleton';;
 	import { error } from '@sveltejs/kit';
 	import { onMount } from 'svelte';
@@ -12,6 +12,20 @@
   export let data;
   const {lazy, board} = data
   const toastStore = getToastStore();
+
+  type Placer = {
+    id: string
+    role: 'USER' | 'ADMIN'
+    syrInstanceUrl: string
+    totalPixelsChanged: number
+    username: string
+    avatar: string | null
+    banner: string | null
+    webProfileUrl: string | null
+  }
+
+  const FALLBACK_AVATAR = '/favicon.png'
+
   let highlighterColorManager = new Map<string, string[]>()
   const setHighlighterColor = (element: HTMLDivElement, imageURL: string) => {
     const currColor = highlighterColorManager.get(imageURL)
@@ -29,7 +43,7 @@
       element.style.borderColor = colors[0]
       element.style.color = colors[1]
     })
-  } 
+  }
   const setHighlighterContext = (element: HTMLDivElement, imageURL: string) => {
     const currColor = highlighterColorManager.get(imageURL)
     if (currColor) {
@@ -82,8 +96,8 @@
   $: zoom = false
   let selectedX: number | null = null
   let selectedY: number | null = null
-  let selectedPlacer: Promise<User>  | null = null
-  let loadedPixels: Pick<Pixel, "x"|"y"|"color">[] 
+  let selectedPlacer: Promise<Placer | null>  | null = null
+  let loadedPixels: Pick<Pixel, "x"|"y"|"color">[]
   let color = "#ffffff"
   let preZoomX = 0
   let preZoomY = 0
@@ -98,7 +112,8 @@
     if (selX == null || selY == null) {
       return null
     }
-    selPlacer = (await fetch(`/api/v1/getPlacer?x=${selX}&y=${selY}`)).json() as Promise<User>
+    const res = await fetch(`/api/v1/getPlacer?x=${selX}&y=${selY}`)
+    selPlacer = res.ok ? (res.json() as Promise<Placer>) : Promise.resolve(null)
     return selPlacer
   }
   const placePixel = async() => {
@@ -208,7 +223,7 @@
           // open eyedropper
           const eyeDropper = new EyeDropper();
           const abortController = new AbortController();
-  
+
           eyeDropper
             .open({ signal: abortController.signal })
             .then((result: {sRGBHex: string}) => {
@@ -222,7 +237,7 @@
                 timeout: 2000
               } as ToastSettings)
             });
-  
+
           setTimeout(() => {
             abortController.abort();
           }, 2000);
@@ -341,7 +356,7 @@
         const update = (JSON.parse(presenceUpdate)).userPresence as UserPresence[]
         // remove own user from list, keep others
         const updateBarSelf = update.filter((presence) => {
-          return presence.user.id != $page.data.localUser?.id
+          return presence.did != $page.data.localUser?.id
         })
         userPresence = updateBarSelf
       } catch (err) {
@@ -354,7 +369,7 @@
 {#if !lazy}
 <p class="flex justify-center items-center text-center w-full h-full text-error-500">
   Failed to load board!
-</p>  
+</p>
 {/if}
 
 <form class="h-screen w-screen flex flex-col" on:submit={() => placePixel()}>
@@ -375,13 +390,14 @@
     <div class="absolute">
       {#key userPresence}
       {#each userPresence as presence}
-        <div class={`highlight absolute h-10 w-10 stroke-black ${!zoom ? "hidden" : "block"}`} style="left: {40*presence.x}px; top: {40*presence.y - (board?.dimY ?? 0)}px" use:setHighlighterColor={PhotoBox.getUserAvatar(presence.user.id)}>
-          <div style="top: 37px; left: -3px;" class="absolute flex justify-between items-center gap-2 p-1" use:setHighlighterColor={PhotoBox.getUserAvatar(presence.user.id)} use:setHighlighterContext={PhotoBox.getUserAvatar(presence.user.id)}>
-            <Avatar src={PhotoBox.getUserAvatar(presence.user.id)} width="w-8" rounded="rounded-none" />
+        {@const presenceAvatar = presence.avatarUrl ?? FALLBACK_AVATAR}
+        <div class={`highlight absolute h-10 w-10 stroke-black ${!zoom ? "hidden" : "block"}`} style="left: {40*presence.x}px; top: {40*presence.y - (board?.dimY ?? 0)}px" use:setHighlighterColor={presenceAvatar}>
+          <div style="top: 37px; left: -3px;" class="absolute flex justify-between items-center gap-2 p-1" use:setHighlighterColor={presenceAvatar} use:setHighlighterContext={presenceAvatar}>
+            <Avatar src={presenceAvatar} width="w-8" rounded="rounded-none" />
             <p>
               ·
             </p>
-            {presence.user.username}
+            {presence.username}
           </div>
         </div>
       {/each}
@@ -420,16 +436,23 @@
       </p>
         {#await selPlacer}
           <iconify-icon icon="eos-icons:spinner" class="animate-spin" />
-        {:then placer} 
+        {:then placer}
         {#if placer}
           <div class="flex items-center justify-center gap-2">
             ·
-            <a href={`http://guilded.gg/profile/${placer.id}`} target="_blank" class="inline">
+            {#if placer.webProfileUrl}
+              <a href={placer.webProfileUrl} target="_blank" rel="noopener noreferrer" class="inline">
+                <div class="flex items-center gap-2">
+                  <Avatar src={placer.avatar ?? FALLBACK_AVATAR} width="w-8" rounded="rounded-none" />
+                  {placer.username}
+                </div>
+              </a>
+            {:else}
               <div class="flex items-center gap-2">
-                <Avatar src={PhotoBox.getUserAvatar(placer.id)} width="w-8" rounded="rounded-none" />
+                <Avatar src={placer.avatar ?? FALLBACK_AVATAR} width="w-8" rounded="rounded-none" />
                 {placer.username}
               </div>
-            </a>
+            {/if}
             {#if $page.data.localUser}
               {#if placer.id == $page.data.localUser.id}
                 <span class="badge variant-filled-secondary">YOU</span>

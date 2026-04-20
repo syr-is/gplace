@@ -1,46 +1,29 @@
-version: "3.3"
-
 services:
-  guilded-place-redis:
-    container_name: guilded-place-redis
-    image: redis:7.2.1-alpine
-    restart: always
-    ports:
-      - ${REDIS_PORT-6379}:${REDIS_PORT-6379}
-    volumes:
-      - ./redis:/data
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD-password}
-      - REDIS_PORT=${REDIS_PORT-6379}
-  guilded-place-db:
-    container_name: guilded-place-db
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB PASSWORD REQUIRED}
-    volumes:
-      - ./db:/var/lib/postgresql/data
-    ports:
-      - ${DB_PORT:?MUST SET DB PORT}:5432
-  guilded-place-app:
-    container_name: guilded-place-app
-    build: 
+  # GPlace Application (Production)
+  # Postgres and Redis are provided by Dokploy's managed services —
+  # wire DATABASE_URL and REDIS_URL through env at deploy time. Both
+  # connection strings MUST include credentials; the app refuses to start
+  # without them. For Redis, ensure your Dokploy Redis service is launched
+  # with --requirepass (or equivalent ACL) — the official redis image does
+  # NOT enforce auth from the REDIS_PASSWORD env var alone.
+  gplace-app:
+    build:
       context: .
-      dockerfile: ./docker/prod/app.dockerfile
-    restart: always
-    depends_on:
-      - guilded-place-db
-    ports:
-      - ${APP_PORT}:${APP_PORT}
-    volumes:
-      - ./app:/app
+      dockerfile: docker/prod/app.dockerfile
     environment:
-      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:?password missing}@guilded-place-db:5432/postgres
-      JWT_SECRET: ${JWT_SECRET:?JWT SECRET REQUIRED}
-      CARDBOARD_TOKEN: ${CARDBOARD_TOKEN:?Get token at https://cardboard.ink/}
-      CARDBOARD_SECRET: ${CARDBOARD_SECRET:?Get secret at https://cardboard.ink/}
-      PUBLIC_CARDBOARD_URL: ${PUBLIC_CARDBOARD_URL:?Get url at https://cardboard.ink/}
-      PUBLIC_CURRENT_BOARD: ${PUBLIC_CURRENT_BOARD:?Board Param is required, set to empty string if none yet.}
-      PROD: ${PROD:?PROD PARAM REQUIRED}
-      REDIS_URL: redis://default:${REDIS_PASSWORD-password}@guilded-place-redis:${REDIS_PORT-6379}/0
-      APP_PORT: ${APP_PORT}
+      - NODE_ENV=production
+      - PORT=${PORT:-5173}
+      - APP_ORIGIN=${APP_ORIGIN:?APP_ORIGIN required (e.g. https://app.gplace.ink)}
+      - PROD=true
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL required (managed Postgres connection string)}
+      - REDIS_URL=${REDIS_URL:?REDIS_URL required (managed Redis connection string)}
+      - PUBLIC_CURRENT_BOARD=${PUBLIC_CURRENT_BOARD:-main}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.prisma
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

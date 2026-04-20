@@ -5,16 +5,7 @@ import { redis } from '$lib/server/redis'
 
 export const load = ({locals}) => {
   if (!locals.localUser) {
-    return {
-      status: 302,
-      redirect: '/login'
-    }
-  }
-  if (!locals.remoteUser) {
-    return {
-      status: 302,
-      redirect: '/login'
-    }
+    throw redirect(302, '/login')
   }
   if (locals.localUser.role as string === 'ADMIN') {
     // get boards from db

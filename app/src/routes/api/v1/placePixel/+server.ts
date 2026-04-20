@@ -1,11 +1,13 @@
 import { error, json } from '@sveltejs/kit'
-import { PUBLIC_CURRENT_BOARD } from '$env/static/public';
+import { env as publicEnv } from '$env/dynamic/public';
 import type { Pixel } from '@prisma/client';
 import {z} from 'zod'
 import { pixelUpdatesManager } from '$lib/common';
+import { prisma } from '$lib/server';
 import { redis } from '$lib/server/redis.js';
 
 export const POST = async ({locals, request}) => {
+  const PUBLIC_CURRENT_BOARD = publicEnv.PUBLIC_CURRENT_BOARD ?? ''
   if (PUBLIC_CURRENT_BOARD == '') {
     throw error(500, "No board selected")
   }
@@ -57,25 +59,11 @@ export const POST = async ({locals, request}) => {
         userId: locals.localUser.id
       }
     })
-      // increment user total placed pixel count
-
-    const user = await locals.db.user.findUnique({
-      where: {
-        id: locals.localUser.id
-      }
-    })
-
-    if (!user) {
-      throw error(500, "User not found")
-    }
-
-    await locals.db.user.update({
-      where: {
-        id: locals.localUser.id
-      },
-      data: {
-        totalPixelsChanged: user.totalPixelsChanged + 1
-      }
+    // Atomic counter increment via raw prisma — User has no write ACL on the
+    // enhanced client (would let users self-promote to ADMIN). Race-safe.
+    await prisma.user.update({
+      where: { id: locals.localUser.id },
+      data: { totalPixelsChanged: { increment: 1 } }
     })
   }
   

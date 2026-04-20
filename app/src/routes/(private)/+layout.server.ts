@@ -1,8 +1,7 @@
 import { redirect } from "@sveltejs/kit"
-import { PUBLIC_CARDBOARD_URL } from "$env/static/public"
-export const load = async ({ locals }) => {
-	// redirect user if logged in
+
+export const load = async ({ locals, url }) => {
 	if (!locals.localUser) {
-		throw redirect(302, PUBLIC_CARDBOARD_URL)
+		throw redirect(302, `/login?redirect=${encodeURIComponent(url.pathname + url.search)}`)
 	}
 }

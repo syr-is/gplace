@@ -1,9 +1,10 @@
 import { error, json } from '@sveltejs/kit'
-import { PUBLIC_CURRENT_BOARD } from '$env/static/public';
+import { env as publicEnv } from '$env/dynamic/public';
 import {z} from 'zod'
 import { userPresenceManager } from '$lib/common';
 
 export const POST = async ({locals, request}) => {
+  const PUBLIC_CURRENT_BOARD = publicEnv.PUBLIC_CURRENT_BOARD ?? ''
   if (PUBLIC_CURRENT_BOARD == '') {
     throw error(500, "No board selected")
   }
@@ -16,7 +17,7 @@ export const POST = async ({locals, request}) => {
   if ((!x && x !== 0) || (!y && y !== 0) || typeof x != "number" || typeof y != "number") {
     throw error(400, "Missing x, y, or color")
   }
-  
+
   const board = await locals.db.board.findUnique({
     where: {
       name: PUBLIC_CURRENT_BOARD
@@ -37,8 +38,17 @@ export const POST = async ({locals, request}) => {
     throw error(404, "Invalid user position!")
   }
 
-
-  userPresenceManager.updateUserPosition({user: locals.localUser, x, y, last_seen: Date.now()})
+  const profile = locals.profile
+  userPresenceManager.updateUserPosition({
+    did: locals.localUser.id,
+    role: locals.localUser.role,
+    username: profile?.displayName ?? profile?.username ?? locals.localUser.id.slice(0, 12),
+    avatarUrl: profile?.avatarUrl,
+    webProfileUrl: profile?.webProfileUrl,
+    x,
+    y,
+    last_seen: Date.now()
+  })
 
   const presence = userPresenceManager.getUserPresence()
 

@@ -19,18 +19,33 @@ enum Role {
     ADMIN
 }
 
-/// @@allow('create,read', true)
-/// @@allow('all', auth() == this)
+/// @@allow('read', true)
 model User {
     createdAt DateTime @default(now())
     editedAt DateTime @default(now())
     id String @id() @unique()
-    username String
-    avatar String @default("https://i.pinimg.com/736x/4f/09/97/4f0997ce37fd4dd022fbb3c09083dbb4.jpg")
-    banner String @default("https://img.guildedcdn.com/asset/Default/ProfileBannerLarge.png")
-    pixels Pixel[]
-    totalPixelsChanged Int @default(0)
+    syrInstanceUrl String
+    delegatePublicKey String
     role Role @default(USER)
+    totalPixelsChanged Int @default(0)
+    pixels Pixel[]
+    sessions Session[]
+}
+
+model Session {
+    createdAt DateTime @default(now())
+    editedAt DateTime @default(now())
+    id String @id()
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+    did String
+    syrInstanceUrl String
+    platformToken String
+    delegatePublicKey String
+    tokenExpiresAt DateTime
+
+    @@index([userId])
+    @@index([tokenExpiresAt])
 }
 
 /// @@allow('read', true)
