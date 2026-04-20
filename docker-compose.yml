@@ -1,7 +1,7 @@
 version: "3.3"
 
 services:
-  guilded-place-redis:
+  gplace-redis:
     container_name: gplace-redis
     image: redis:7.2.1-alpine
     restart: always
@@ -11,7 +11,7 @@ services:
       - ./redis:/data
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD-password}
-  guilded-place-db:
+  gplace-db:
     container_name: gplace-db
     image: postgres:16-alpine
     restart: always
@@ -21,14 +21,14 @@ services:
       - ./db:/var/lib/postgresql/data
     ports:
       - ${DB_PORT-5476}:5432
-  guilded-place-app:
+  gplace-app:
     container_name: gplace-app
     build:
       context: .
       dockerfile: ./docker/dev/app.dockerfile
     restart: always
     depends_on:
-      - guilded-place-db
+      - gplace-db
     ports:
       - ${STUDIO_PORT-5556}:5555
       - ${DEV_PORT-5176}:5173

@@ -82,15 +82,6 @@
 				<LoginWithSyr />
 			{/if}
 		</div>
-		<footer class="flex flex-col gap-4 mt- items-center w-full">
-			<hr class="w-2/3" />
-			<p>
-				Join our
-				<a href="https://www.guilded.gg/i/EzrJGDdE" target="_blank">
-					Guilded Server!
-				</a>
-			</p>
-		</footer>
 	</div>
 </Drawer>
 
@@ -103,7 +94,7 @@
   <meta property="og:url" content="https://gplace.ink" />
   <meta property="og:image" content="https://gplace.ink/favicon.png" />
   <meta property="og:description" content="Create pixel art together!" />
-	<meta name="keywords" content="Guilded, GPlace, r/place, Pixel Art">
+	<meta name="keywords" content="GPlace, syr, r/place, Pixel Art">
   <meta name="author" content="Ham aka TooMuchHam, SoSweetHam">
 </svelte:head>
 
