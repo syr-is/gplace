@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { safeUrl } from '$lib/server/syr';
+import { safeProxyUrl } from '$lib/server/syr';
 
 // Federated media proxy: avatars / banners come from each user's syr instance
 // (often s3.<instance>). Browsers fetching cross-origin can be blocked by
@@ -16,7 +16,7 @@ export const GET = async ({ url, setHeaders }) => {
     const target = url.searchParams.get('url');
     if (!target) throw error(400, 'Missing url parameter');
 
-    const parsed = safeUrl(target);
+    const parsed = safeProxyUrl(target);
     if (!parsed) throw error(400, 'Invalid or disallowed url');
 
     let upstream: Response;
