@@ -4,6 +4,11 @@
 # ---- Dependencies ----
 FROM node:20-alpine AS deps
 
+# git: one transitive dep (js-function-reflector via colorthief) is fetched by URL,
+# so yarn install needs the git binary. openssl: required by Prisma's query engine
+# on Alpine; without it the postinstall succeeds but runtime crashes.
+RUN apk add --no-cache git openssl
+
 WORKDIR /app
 COPY app/package.json app/yarn.lock ./
 RUN yarn install --frozen-lockfile
@@ -26,6 +31,9 @@ FROM node:20-alpine AS production
 
 ENV NODE_ENV=production
 ENV PORT=5173
+
+# openssl is required at runtime by Prisma's query engine on Alpine.
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
