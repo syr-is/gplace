@@ -42,7 +42,7 @@
       rel={topChanger.webProfileUrl ? 'noopener noreferrer' : undefined}
       href={topChanger.webProfileUrl ?? undefined}
     >
-      <div style={proxiedBanner ? `background-image: url("${encodeURI(proxiedBanner).replace(/"/g, '%22')}")` : ''} class="card bg-no-repeat bg-cover w-full flex justify-between p-4" >
+      <div style={proxiedBanner ? `background-image: url("${proxiedBanner}")` : ''} class="card bg-no-repeat bg-cover w-full flex justify-between p-4" >
         <div class="flex flex-row justify-between w-full">
           <div class="flex gap-4 items-center" use:getTextColor={proxiedBanner}>
             <Avatar src={topChanger.avatar ? proxied(topChanger.avatar) : FALLBACK_AVATAR} width="w-16" rounded="rounded-none" />
